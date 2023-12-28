@@ -6,4 +6,6 @@
     <p>Organisation: {{ business.organisation }}</p>
     <p>Industry: {{ business.industry }}</p>
     <p>Established Date: {{ business.established_date }}</p>
+
+    <a href="{% url 'business_update' business.id %}">Update</a>
 {% endblock %}

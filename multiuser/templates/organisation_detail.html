@@ -6,4 +6,6 @@
     <p>Address: {{ organisation.address }}</p>
     <p>Contact Number: {{ organisation.contact_number }}</p>
     <p>Email: {{ organisation.email }}</p>
+
+    <a href="{% url 'organisation_update' organisation.id %}">Update</a>
 {% endblock %}

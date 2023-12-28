@@ -7,4 +7,6 @@
     <p>Address: {{ branch.address }}</p>
     <p>Contact Number: {{ branch.contact_number }}</p>
     <p>Email: {{ branch.email }}</p>
+    
+    <a href="{% url 'branch_update' branch.id %}">Update</a>
 {% endblock %}
