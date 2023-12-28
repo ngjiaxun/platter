@@ -13,7 +13,7 @@ class OrganisationListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.view_organisation', klass=Organisation)
+        queryset = get_objects_for_user(user, 'multiuser.view_organisation')
         return queryset
 
 class OrganisationCreateView(LoginRequiredMixin, CreateView):
@@ -22,6 +22,11 @@ class OrganisationCreateView(LoginRequiredMixin, CreateView):
     fields = ['name', 'address', 'contact_number', 'email']
     success_url = reverse_lazy('organisation_list')
 
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.add_organisation')
+        return queryset
+
 class OrganisationDetailView(LoginRequiredMixin, DetailView):
     model = Organisation
     template_name = 'organisation_detail.html'
@@ -29,7 +34,7 @@ class OrganisationDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.view_organisation', klass=Organisation)
+        queryset = get_objects_for_user(user, 'multiuser.view_organisation')
         return queryset
 
 class OrganisationUpdateView(LoginRequiredMixin, UpdateView):
@@ -38,10 +43,20 @@ class OrganisationUpdateView(LoginRequiredMixin, UpdateView):
     fields = ['name', 'address', 'contact_number', 'email']
     context_object_name = 'organisation'
 
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.change_organisation')
+        return queryset
+
 class OrganisationDeleteView(LoginRequiredMixin, DeleteView):
     model = Organisation
     template_name = 'organisation_confirm_delete.html'
     success_url = reverse_lazy('organisation_list')
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.delete_organisation')
+        return queryset
 
 # class OrganisationUserListView(ListView):
 #     model = OrganisationUser
