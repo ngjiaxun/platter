@@ -11,12 +11,12 @@ from guardian.admin import GuardedModelAdmin
 
 @admin.register(Organisation)
 class OrganisationAdmin(GuardedModelAdmin):
-    list_display = ('name', )
+    pass
 
 @admin.register(Business)
 class BusinessAdmin(GuardedModelAdmin):
-    list_display = ('name', )
+    pass
 
 @admin.register(Branch)
 class BranchAdmin(GuardedModelAdmin):
-    list_display = ('name', )
+    pass

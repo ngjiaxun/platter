@@ -4,16 +4,16 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from .models import Organisation, Business, Branch
+from guardian.shortcuts import get_objects_for_user
 
 class OrganisationListView(LoginRequiredMixin, ListView):
     model = Organisation
     template_name = 'organisation_list.html'
     context_object_name = 'organisations'
-    
+
     def get_queryset(self):
-        queryset = super().get_queryset()
         user = self.request.user
-        queryset = queryset.filter(organisationassignment__user=user)
+        queryset = get_objects_for_user(user, 'multiuser.view_organisation', klass=Organisation)
         return queryset
 
 class OrganisationCreateView(LoginRequiredMixin, CreateView):
@@ -26,11 +26,10 @@ class OrganisationDetailView(LoginRequiredMixin, DetailView):
     model = Organisation
     template_name = 'organisation_detail.html'
     context_object_name = 'organisation'
-    
+
     def get_queryset(self):
-        queryset = super().get_queryset()
         user = self.request.user
-        queryset = queryset.filter(organisationassignment__user=user)
+        queryset = get_objects_for_user(user, 'multiuser.view_organisation', klass=Organisation)
         return queryset
 
 class OrganisationUpdateView(LoginRequiredMixin, UpdateView):
