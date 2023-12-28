@@ -7,7 +7,9 @@
     <p>Industry: {{ business.industry }}</p>
     <p>Established Date: {{ business.established_date }}</p>
 
-    <a href="{% url 'business_update' business.id %}">Update</a>
+    {% if perms.multiuser.change_business %}
+        <a href="{% url 'business_update' business.id %}">Update</a>
+    {% endif %}
 
     <h2>Branches</h2>
     <ul>

@@ -7,7 +7,9 @@
     <p>Contact Number: {{ organisation.contact_number }}</p>
     <p>Email: {{ organisation.email }}</p>
 
-    <a href="{% url 'organisation_update' organisation.id %}">Update</a>
+    {% if perms.multiuser.change_organisation %}
+        <a href="{% url 'organisation_update' organisation.id %}">Update</a>
+    {% endif %}
 
     <h2>Businesses</h2>
     <ul>
