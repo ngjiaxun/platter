@@ -8,4 +8,11 @@
     <p>Email: {{ organisation.email }}</p>
 
     <a href="{% url 'organisation_update' organisation.id %}">Update</a>
+
+    <h2>Businesses</h2>
+    <ul>
+        {% for business in businesses %}
+            <li><a href="{% url 'business_detail' business.id %}">{{ business.name }}</a></li>
+        {% endfor %}
+    </ul>
 {% endblock %}

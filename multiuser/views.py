@@ -37,6 +37,11 @@ class OrganisationDetailView(LoginRequiredMixin, DetailView):
         queryset = get_objects_for_user(user, 'multiuser.view_organisation')
         return queryset
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['businesses'] = Business.objects.filter(organisation=self.object)
+        return context
+
 class OrganisationUpdateView(LoginRequiredMixin, UpdateView):
     model = Organisation
     template_name = 'organisation_update.html'
@@ -88,6 +93,11 @@ class BusinessDetailView(LoginRequiredMixin, DetailView):
         user = self.request.user
         queryset = get_objects_for_user(user, 'multiuser.view_business')
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['branches'] = Branch.objects.filter(business=self.object)
+        return context
 
 class BusinessUpdateView(LoginRequiredMixin, UpdateView):
     model = Business
