@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Branch list</h1>
+    <ul>
+        {% for branch in branches %}
+            <li><a href="{% url 'branch_detail' branch.id %}">{{ branch.name }}</a></li>
+        {% endfor %}
+    </ul>
+{% endblock %}

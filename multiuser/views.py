@@ -58,42 +58,14 @@ class OrganisationDeleteView(LoginRequiredMixin, DeleteView):
         queryset = get_objects_for_user(user, 'multiuser.delete_organisation')
         return queryset
 
-# class OrganisationUserListView(ListView):
-#     model = OrganisationUser
-#     template_name = 'organisation_user_list.html'
-#     context_object_name = 'organisation_users'
-
-# class OrganisationUserCreateView(CreateView):
-#     model = OrganisationUser
-#     template_name = 'organisation_user_create.html'
-#     fields = ['organisation', 'user', 'role']
-#     success_url = reverse_lazy('organisation_user_list')
-
-# class OrganisationUserDetailView(DetailView):
-#     model = OrganisationUser
-#     template_name = 'organisation_user_detail.html'
-#     context_object_name = 'organisation_user'
-
-# class OrganisationUserUpdateView(UpdateView):
-#     model = OrganisationUser
-#     template_name = 'organisation_user_update.html'
-#     fields = ['organisation', 'user', 'role']
-#     context_object_name = 'organisation_user'
-
-# class OrganisationUserDeleteView(DeleteView):
-#     model = OrganisationUser
-#     template_name = 'organisation_user_confirm_delete.html'
-#     success_url = reverse_lazy('organisation_user_list')
-
 class BusinessListView(LoginRequiredMixin, ListView):
     model = Business
     template_name = 'business_list.html'
     context_object_name = 'businesses'
-    
+
     def get_queryset(self):
-        queryset = super().get_queryset()
         user = self.request.user
-        queryset = queryset.filter(businessassignment__user=user)
+        queryset = get_objects_for_user(user, 'multiuser.view_business')
         return queryset
 
 class BusinessCreateView(LoginRequiredMixin, CreateView):
@@ -102,15 +74,19 @@ class BusinessCreateView(LoginRequiredMixin, CreateView):
     fields = ['name', 'organisation', 'industry', 'established_date']
     success_url = reverse_lazy('business_list')
 
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.add_business')
+        return queryset
+
 class BusinessDetailView(LoginRequiredMixin, DetailView):
     model = Business
     template_name = 'business_detail.html'
     context_object_name = 'business'
-    
+
     def get_queryset(self):
-        queryset = super().get_queryset()
         user = self.request.user
-        queryset = queryset.filter(businessassignment__user=user)
+        queryset = get_objects_for_user(user, 'multiuser.view_business')
         return queryset
 
 class BusinessUpdateView(LoginRequiredMixin, UpdateView):
@@ -119,34 +95,69 @@ class BusinessUpdateView(LoginRequiredMixin, UpdateView):
     fields = ['name', 'organisation', 'industry', 'established_date']
     context_object_name = 'business'
 
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.change_business')
+        return queryset
+
 class BusinessDeleteView(LoginRequiredMixin, DeleteView):
     model = Business
     template_name = 'business_confirm_delete.html'
     success_url = reverse_lazy('business_list')
 
-# class BranchListView(ListView):
-#     model = Branch
-#     template_name = 'branch_list.html'
-#     context_object_name = 'branches'
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.delete_business')
+        return queryset
 
-# class BranchCreateView(CreateView):
-#     model = Branch
-#     template_name = 'branch_create.html'
-#     fields = ['name', 'business', 'address', 'contact_number', 'email']
-#     success_url = reverse_lazy('branch_list')
+class BranchListView(ListView):
+    model = Branch
+    template_name = 'branch_list.html'
+    context_object_name = 'branches'
 
-# class BranchDetailView(DetailView):
-#     model = Branch
-#     template_name = 'branch_detail.html'
-#     context_object_name = 'branch'
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.view_branch')
+        return queryset
 
-# class BranchUpdateView(UpdateView):
-#     model = Branch
-#     template_name = 'branch_update.html'
-#     fields = ['name', 'business', 'address', 'contact_number', 'email']
-#     context_object_name = 'branch'
+class BranchCreateView(CreateView):
+    model = Branch
+    template_name = 'branch_create.html'
+    fields = ['name', 'business', 'address', 'contact_number', 'email']
+    success_url = reverse_lazy('branch_list')
 
-# class BranchDeleteView(DeleteView):
-#     model = Branch
-#     template_name = 'branch_confirm_delete.html'
-#     success_url = reverse_lazy('branch_list')
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.add_branch')
+        return queryset
+
+class BranchDetailView(DetailView):
+    model = Branch
+    template_name = 'branch_detail.html'
+    context_object_name = 'branch'
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.view_branch')
+        return queryset
+
+class BranchUpdateView(UpdateView):
+    model = Branch
+    template_name = 'branch_update.html'
+    fields = ['name', 'business', 'address', 'contact_number', 'email']
+    context_object_name = 'branch'
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.change_branch')
+        return queryset
+
+class BranchDeleteView(DeleteView):
+    model = Branch
+    template_name = 'branch_confirm_delete.html'
+    success_url = reverse_lazy('branch_list')
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, 'multiuser.delete_branch')
+        return queryset
