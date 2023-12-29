@@ -2,8 +2,10 @@ from django.db import models
 from django.urls import reverse
 from django.contrib.auth.models import User
 
+
 class Organisation(models.Model):
     name = models.CharField(max_length=100)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, editable=False)
     address = models.CharField(max_length=200)
     contact_number = models.CharField(max_length=20)
     email = models.EmailField()
@@ -17,6 +19,7 @@ class Organisation(models.Model):
 
 class Business(models.Model):
     name = models.CharField(max_length=100)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, editable=False)
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
     industry = models.CharField(max_length=100)
     established_date = models.DateField()
@@ -30,6 +33,7 @@ class Business(models.Model):
 
 class Branch(models.Model):
     name = models.CharField(max_length=100)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, editable=False)
     business = models.ForeignKey(Business, on_delete=models.CASCADE)
     address = models.CharField(max_length=200)
     contact_number = models.CharField(max_length=20)
