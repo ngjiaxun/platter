@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import Group, Permission
 from guardian.shortcuts import assign_perm
@@ -21,3 +21,10 @@ def create_organisation_groups(sender, instance, created, **kwargs):
 
         # Add the user who created the organisation to the admin group
         instance.created_by.groups.add(admin_group)
+
+@receiver(post_delete, sender=Organisation)
+def delete_organisation_groups(sender, instance, **kwargs):
+    # Delete the admin group
+    Group.objects.get(name=f'{instance.name}_admins').delete()
+    # Delete the user group
+    Group.objects.get(name=f'{instance.name}_users').delete()
