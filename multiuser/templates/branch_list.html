@@ -2,6 +2,9 @@
 
 {% block content %}
     <h1>Branch list</h1>
+    <p>
+        <a href="{% url 'branch_create' %}">+ Create branch</a>
+    </p>
     <ul>
         {% for branch in branches %}
             <li><a href="{% url 'branch_detail' branch.id %}">{{ branch.name }}</a></li>
