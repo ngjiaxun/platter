@@ -3,8 +3,8 @@ from django.contrib.auth import login
 from .forms import RegisterForm
 
 
-# def home(request):
-#     return render(request, 'multiuser/templates/organisation_list.html')
+def home(request):
+    return redirect('/multiuser/organisation/')
 
 def sign_up(request):
     if request.method == 'POST':
