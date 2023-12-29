@@ -22,11 +22,6 @@ class OrganisationCreateView(LoginRequiredMixin, CreateView):
     fields = ['name', 'address', 'contact_number', 'email']
     success_url = reverse_lazy('organisation_list')
 
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.add_organisation')
-        return queryset
-
 class OrganisationDetailView(LoginRequiredMixin, DetailView):
     model = Organisation
     template_name = 'organisation_detail.html'
@@ -77,12 +72,12 @@ class BusinessCreateView(LoginRequiredMixin, CreateView):
     model = Business
     template_name = 'business_create.html'
     fields = ['name', 'organisation', 'industry', 'established_date']
-    success_url = reverse_lazy('business_list')
+    success_url = reverse_lazy('business_list') 
 
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.add_business')
-        return queryset
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields['organisation'].queryset = get_objects_for_user(self.request.user, 'multiuser.view_organisation')
+        return form
 
 class BusinessDetailView(LoginRequiredMixin, DetailView):
     model = Business
@@ -136,10 +131,10 @@ class BranchCreateView(CreateView):
     fields = ['name', 'business', 'address', 'contact_number', 'email']
     success_url = reverse_lazy('branch_list')
 
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.add_branch')
-        return queryset
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields['business'].queryset = get_objects_for_user(self.request.user, 'multiuser.view_business')
+        return form
 
 class BranchDetailView(DetailView):
     model = Branch
