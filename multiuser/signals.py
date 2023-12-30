@@ -48,4 +48,3 @@ def create_branch_groups(sender, instance, created, **kwargs):
 @receiver(post_delete, sender=Branch)
 def delete_branch_groups(sender, instance, **kwargs):
     delete_groups(instance)
-

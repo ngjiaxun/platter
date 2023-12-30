@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.db.models import Q
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
 from django.urls import reverse_lazy
@@ -68,8 +68,11 @@ class BusinessListView(LoginRequiredMixin, ListView):
     context_object_name = 'businesses'
 
     def get_queryset(self):
+        queryset = super().get_queryset()
         user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.view_business')
+        organisations = get_objects_for_user(user, 'multiuser.view_organisation') # Get all organisations the user has view permission for
+        businesses = get_objects_for_user(user, 'multiuser.view_business') # Get all businesses the user has view permission for
+        queryset = queryset.filter(Q(organisation__in=organisations) | Q(pk__in=businesses)) # Filter the queryset to only include businesses that belong to the organisations the user has view permission for, or the user has view permission for
         return queryset
 
 class BusinessCreateView(LoginRequiredMixin, CreateView):

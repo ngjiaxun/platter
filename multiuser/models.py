@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 class Entity(models.Model):
     name = models.CharField(max_length=100)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, editable=False)
+    created_by = models.ForeignKey(User, on_delete=models.SET_DEFAULT, editable=False, default=1)
 
     class Meta:
         abstract = True
