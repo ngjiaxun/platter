@@ -6,37 +6,46 @@ from django.contrib.auth.models import User
 class Entity(models.Model):
     name = models.CharField(max_length=100)
     created_by = models.ForeignKey(User, on_delete=models.SET_DEFAULT, editable=False, default=1)
-
-    class Meta:
-        abstract = True
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return self.name
 
 
 class Organisation(Entity):
-    address = models.CharField(max_length=200)
-    contact_number = models.CharField(max_length=20)
-    email = models.EmailField()
+    organisation_fields = models.CharField(max_length=100)
 
     def get_absolute_url(self):
         return reverse("organisation_detail", kwargs={"pk": self.pk})
 
+    def clean(self):
+        if self.parent is not None:
+            raise ValidationError('Organisations cannot have parents')
+
 
 class Business(Entity):
-    organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
-    industry = models.CharField(max_length=100)
-    established_date = models.DateField()
+    business_fields = models.CharField(max_length=100)
 
     def get_absolute_url(self):
         return reverse("business_detail", kwargs={"pk": self.pk})
 
+    # Business must have a parent and it must be an Organisation
+    def clean(self):
+        if self.parent is None:
+            raise ValidationError('Businesses must have parents')
+        if self.parent.__class__ != Organisation:
+            raise ValidationError('Businesses can only have Organisations as parents')
+
 
 class Branch(Entity):
-    business = models.ForeignKey(Business, on_delete=models.CASCADE)
-    address = models.CharField(max_length=200)
-    contact_number = models.CharField(max_length=20)
-    email = models.EmailField()
+    branch_fields = models.CharField(max_length=100)
 
     def get_absolute_url(self):
         return reverse("branch_detail", kwargs={"pk": self.pk})
+
+    # Branch must have a parent and it must be a Business
+    def clean(self):
+        if self.parent is None:
+            raise ValidationError('Branches must have parents')
+        if self.parent.__class__ != Business:
+            raise ValidationError('Branches can only have Businesses as parents')

@@ -2,10 +2,7 @@
 
 {% block content %}
     <h1>Business detail</h1>
-    <p>Name: {{ business.name }}</p>
-    <p>Organisation: {{ business.organisation }}</p>
-    <p>Industry: {{ business.industry }}</p>
-    <p>Established Date: {{ business.established_date }}</p>
+    <p>Business fields: {{ business.business_fields }}</p>
 
     {% if perms.multiuser.change_business %}
         <a href="{% url 'business_update' business.id %}">Update</a>
