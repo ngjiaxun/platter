@@ -133,3 +133,9 @@ AUTHENTICATION_BACKENDS = (
 
 LOGIN_REDIRECT_URL = "/multiuser/organisation/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
+
+ENTITY_HIERARCHY = [
+    "organisation",
+    "business",
+    "branch",
+]

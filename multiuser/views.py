@@ -3,8 +3,32 @@ from django.db.models import Q
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
+from django.conf import settings
 from .models import Organisation, Business, Branch
 from guardian.shortcuts import get_objects_for_user
+
+
+class EntityCreateView(LoginRequiredMixin, CreateView):
+    model = None
+    template_name = 'entity_create.html'
+    fields = '__all__'
+    success_url = reverse_lazy('entity_list')
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user # Assign the user who created the instance to the created_by field
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None): 
+        form = super().get_form(form_class)
+        rank = settings.ENTITY_HIERARCHY.index(self.model._meta.model_name) # Get the rank of the in the entity model hierarchy
+        if rank > 0:
+            # Only allow the user to create an entity under a parent they have change permission for
+            form.fields['parent'].queryset = get_objects_for_user(self.request.user, f'multiuser.change_{settings.ENTITY_HIERARCHY[rank - 1]}')
+        else:
+            # Top level entities cannot have parents
+            form.fields['parent'].widget = form.fields['parent'].hidden_widget()
+        return form
+
 
 class OrganisationListView(LoginRequiredMixin, ListView):
     model = Organisation
@@ -16,16 +40,13 @@ class OrganisationListView(LoginRequiredMixin, ListView):
         queryset = get_objects_for_user(user, 'multiuser.view_organisation') 
         return queryset
 
-class OrganisationCreateView(LoginRequiredMixin, CreateView):
+
+class OrganisationCreateView(EntityCreateView):
     model = Organisation
     template_name = 'organisation_create.html'
     fields = '__all__'
     success_url = reverse_lazy('organisation_list')
 
-    def form_valid(self, form): 
-        # Set the created_by field to the current user before saving the form
-        form.instance.created_by = self.request.user
-        return super().form_valid(form)
 
 class OrganisationDetailView(LoginRequiredMixin, DetailView):
     model = Organisation
@@ -43,6 +64,7 @@ class OrganisationDetailView(LoginRequiredMixin, DetailView):
         context['businesses'] = Business.objects.filter(parent=self.object)
         return context
 
+
 class OrganisationUpdateView(LoginRequiredMixin, UpdateView):
     model = Organisation
     template_name = 'organisation_update.html'
@@ -54,6 +76,7 @@ class OrganisationUpdateView(LoginRequiredMixin, UpdateView):
         queryset = get_objects_for_user(user, 'multiuser.change_organisation')
         return queryset
 
+
 class OrganisationDeleteView(LoginRequiredMixin, DeleteView):
     model = Organisation
     template_name = 'organisation_confirm_delete.html'
@@ -64,38 +87,32 @@ class OrganisationDeleteView(LoginRequiredMixin, DeleteView):
         queryset = get_objects_for_user(user, 'multiuser.delete_organisation')
         return queryset
 
+
 class BusinessListView(LoginRequiredMixin, ListView):
     model = Business
     template_name = 'business_list.html'
     context_object_name = 'businesses'
 
-    # def get_queryset(self):
-    #     user = self.request.user
-    #     queryset = get_objects_for_user(user, 'multiuser.view_business')
-    #     return queryset
-
     def get_queryset(self):
         user = self.request.user
-        queryset = super().get_queryset() # Get all businesses
-        organisations = get_objects_for_user(user, 'multiuser.view_organisation') # Get all organisations the user has view permission for
-        businesses = get_objects_for_user(user, 'multiuser.view_business') # Get all businesses the user has view permission for
-        queryset = queryset.filter(Q(organisation__in=organisations) | Q(pk__in=businesses)) # Filter the queryset to only include businesses that belong to the organisations the user has view permission for, or the user has view permission for
+        queryset = get_objects_for_user(user, 'multiuser.view_business')
         return queryset
 
-class BusinessCreateView(LoginRequiredMixin, CreateView):
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     queryset = super().get_queryset() # Get all businesses
+    #     organisations = get_objects_for_user(user, 'multiuser.view_organisation') # Get all organisations the user has view permission for
+    #     businesses = get_objects_for_user(user, 'multiuser.view_business') # Get all businesses the user has view permission for
+    #     queryset = queryset.filter(Q(organisation__in=organisations) | Q(pk__in=businesses)) # Filter the queryset to only include businesses that belong to the organisations the user has view permission for, or the user has view permission for
+    #     return queryset
+
+
+class BusinessCreateView(EntityCreateView):
     model = Business
     template_name = 'business_create.html'
     fields = '__all__'
     success_url = reverse_lazy('business_list') 
 
-    def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None): 
-        form = super().get_form(form_class)
-        form.fields['parent'].queryset = get_objects_for_user(self.request.user, 'multiuser.change_organisation')
-        return form
 
 class BusinessDetailView(LoginRequiredMixin, DetailView):
     model = Business
@@ -112,6 +129,7 @@ class BusinessDetailView(LoginRequiredMixin, DetailView):
         context['branches'] = Branch.objects.filter(parent=self.object)
         return context
 
+
 class BusinessUpdateView(LoginRequiredMixin, UpdateView):
     model = Business
     template_name = 'business_update.html'
@@ -123,6 +141,7 @@ class BusinessUpdateView(LoginRequiredMixin, UpdateView):
         queryset = get_objects_for_user(user, 'multiuser.change_business')
         return queryset
 
+
 class BusinessDeleteView(LoginRequiredMixin, DeleteView):
     model = Business
     template_name = 'business_confirm_delete.html'
@@ -132,6 +151,7 @@ class BusinessDeleteView(LoginRequiredMixin, DeleteView):
         user = self.request.user
         queryset = get_objects_for_user(user, 'multiuser.delete_business')
         return queryset
+
 
 class BranchListView(ListView):
     model = Branch
@@ -152,20 +172,13 @@ class BranchListView(ListView):
     #     queryset = queryset.filter(Q(business__organisation__in=organisations) | Q(business__in=businesses) | Q(pk__in=branches)) # Filter the queryset to only include branches that belong to the organisations the user has view permission for, or the businesses the user has view permission for, or the user has view permission for
     #     return queryset
 
-class BranchCreateView(CreateView):
+
+class BranchCreateView(EntityCreateView):
     model = Branch
     template_name = 'branch_create.html'
     fields = '__all__'
     success_url = reverse_lazy('branch_list')
 
-    def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        return super().form_valid(form)
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields['parent'].queryset = get_objects_for_user(self.request.user, 'multiuser.change_business')
-        return form
 
 class BranchDetailView(DetailView):
     model = Branch
@@ -177,6 +190,7 @@ class BranchDetailView(DetailView):
         queryset = get_objects_for_user(user, 'multiuser.view_branch')
         return queryset
 
+
 class BranchUpdateView(UpdateView):
     model = Branch
     template_name = 'branch_update.html'
@@ -187,6 +201,7 @@ class BranchUpdateView(UpdateView):
         user = self.request.user
         queryset = get_objects_for_user(user, 'multiuser.change_branch')
         return queryset
+
 
 class BranchDeleteView(DeleteView):
     model = Branch

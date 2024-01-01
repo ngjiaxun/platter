@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 class Entity(models.Model):
     name = models.CharField(max_length=100)
-    created_by = models.ForeignKey(User, on_delete=models.SET_DEFAULT, editable=False, default=1)
+    created_by = models.ForeignKey(User, on_delete=models.SET_DEFAULT, editable=False, default=1) # Used to assign the user who created the instance to the admin group
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
@@ -49,3 +49,5 @@ class Branch(Entity):
             raise ValidationError('Branches must have parents')
         if self.parent.__class__ != Business:
             raise ValidationError('Branches can only have Businesses as parents')
+
+
