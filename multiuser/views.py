@@ -9,21 +9,20 @@ from guardian.shortcuts import get_objects_for_user
 
 
 class EntityMixin(LoginRequiredMixin):
-    def get_rank(self):
-        return settings.ENTITY_HIERARCHY.index(self.model._meta.model_name)
-
-    def is_root(self):
-        return self.get_rank() == 0
-
-    def is_leaf(self):
-        return self.get_rank() == len(settings.ENTITY_HIERARCHY) - 1
-
-    # Get the list of immediate parent objects which the user has change permission for
     def get_parents_with_change_permission(self):
-        if not self.is_root():
+        if not self.model.is_top():
             user = self.request.user
-            return get_objects_for_user(user, f'multiuser.change_{settings.ENTITY_HIERARCHY[self.get_rank() - 1]}')
+            return get_objects_for_user(user, f'multiuser.change_{self.model.prev_level()}')
         return None
+
+    def get_create_or_update_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Populate the parent list field if the model is not a root level entity
+        if self.model.is_top(): 
+            form.fields['parent'].widget = form.fields['parent'].hidden_widget()
+        else: 
+            form.fields['parent'].queryset = self.get_parents_with_change_permission()
+        return form
 
 
 class EntityCreateView(EntityMixin, CreateView):
@@ -32,26 +31,30 @@ class EntityCreateView(EntityMixin, CreateView):
         return super().form_valid(form)
 
     def get_form(self, form_class=None): 
-        form = super().get_form(form_class)
-        # Populate the parent list field if the model is not a root level entity
-        if self.is_root(): 
-            form.fields['parent'].widget = form.fields['parent'].hidden_widget()
-        else: 
-            form.fields['parent'].queryset = self.get_parents_with_change_permission()
-        return form
+        return self.get_create_or_update_form()
 
 
 class EntityDetailView(EntityMixin, DetailView):
     def get_queryset(self):
         user = self.request.user
-        queryset = get_objects_for_user(user, f'multiuser.view_{self.model._meta.model_name}')
+        queryset = get_objects_for_user(user, f'multiuser.view_{self.model.curr_level()}')
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if not self.is_leaf(): # Add children to the context if the model is not a bottom level entity
+        if not self.model.is_bottom(): # Add children to the context if the model is not a bottom level entity
             context['children'] = Entity.objects.filter(parent=self.object)
         return context
+
+
+class EntityUpdateView(EntityMixin, UpdateView):
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, f'multiuser.change_{self.model.curr_level()}')
+        return queryset
+
+    def get_form(self, form_class=None): 
+        return self.get_create_or_update_form()
 
 
 class OrganisationListView(LoginRequiredMixin, ListView):
@@ -132,16 +135,6 @@ class BusinessDetailView(EntityDetailView):
     template_name = 'business_detail.html'
     context_object_name = 'business'
 
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.view_business')
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['branches'] = Branch.objects.filter(parent=self.object)
-        return context
-
 
 class BusinessUpdateView(LoginRequiredMixin, UpdateView):
     model = Business
@@ -197,11 +190,6 @@ class BranchDetailView(EntityDetailView):
     model = Branch
     template_name = 'branch_detail.html'
     context_object_name = 'branch'
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.view_branch')
-        return queryset
 
 
 class BranchUpdateView(UpdateView):
