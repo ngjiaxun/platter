@@ -8,26 +8,50 @@ from .models import Organisation, Business, Branch
 from guardian.shortcuts import get_objects_for_user
 
 
-class EntityCreateView(LoginRequiredMixin, CreateView):
-    model = None
-    template_name = 'entity_create.html'
-    fields = '__all__'
-    success_url = reverse_lazy('entity_list')
+class EntityMixin(LoginRequiredMixin):
+    def get_rank(self):
+        return settings.ENTITY_HIERARCHY.index(self.model._meta.model_name)
 
+    def is_root(self):
+        return self.get_rank() == 0
+
+    def is_leaf(self):
+        return self.get_rank() == len(settings.ENTITY_HIERARCHY) - 1
+
+    # Get the list of immediate parent objects which the user has change permission for
+    def get_parents_with_change_permission(self):
+        if not self.is_root():
+            user = self.request.user
+            return get_objects_for_user(user, f'multiuser.change_{settings.ENTITY_HIERARCHY[self.get_rank() - 1]}')
+        return None
+
+
+class EntityCreateView(EntityMixin, CreateView):
     def form_valid(self, form):
         form.instance.created_by = self.request.user # Assign the user who created the instance to the created_by field
         return super().form_valid(form)
 
     def get_form(self, form_class=None): 
         form = super().get_form(form_class)
-        rank = settings.ENTITY_HIERARCHY.index(self.model._meta.model_name) # Get the rank of the in the entity model hierarchy
-        if rank > 0:
-            # Only allow the user to create an entity under a parent they have change permission for
-            form.fields['parent'].queryset = get_objects_for_user(self.request.user, f'multiuser.change_{settings.ENTITY_HIERARCHY[rank - 1]}')
-        else:
-            # Top level entities cannot have parents
+        # Populate the parent list field if the model is not a root level entity
+        if self.is_root(): 
             form.fields['parent'].widget = form.fields['parent'].hidden_widget()
+        else: 
+            form.fields['parent'].queryset = self.get_parents_with_change_permission()
         return form
+
+
+class EntityDetailView(EntityMixin, DetailView):
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_objects_for_user(user, f'multiuser.view_{self.model._meta.model_name}')
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if not self.is_leaf(): # Add children to the context if the model is not a bottom level entity
+            context['children'] = self.model.objects.filter(parent=self.object)
+        return context
 
 
 class OrganisationListView(LoginRequiredMixin, ListView):
@@ -48,21 +72,10 @@ class OrganisationCreateView(EntityCreateView):
     success_url = reverse_lazy('organisation_list')
 
 
-class OrganisationDetailView(LoginRequiredMixin, DetailView):
+class OrganisationDetailView(EntityDetailView):
     model = Organisation
     template_name = 'organisation_detail.html'
     context_object_name = 'organisation'
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.view_organisation')
-        return queryset
-
-    def get_context_data(self, **kwargs): 
-        context = super().get_context_data(**kwargs)
-        # Add the businesses that belong to the organisation to the context dictionary so they can be displayed on the organisation detail page
-        context['businesses'] = Business.objects.filter(parent=self.object)
-        return context
 
 
 class OrganisationUpdateView(LoginRequiredMixin, UpdateView):

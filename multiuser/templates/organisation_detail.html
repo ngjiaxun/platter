@@ -13,7 +13,7 @@
         <a href="{% url 'business_create' %}">+ Create business</a>
     </p>
     <ul>
-        {% for business in businesses %}
+        {% for business in children %}
             <li><a href="{% url 'business_detail' business.id %}">{{ business.name }}</a></li>
         {% endfor %}
     </ul>

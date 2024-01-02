@@ -13,7 +13,7 @@
         <a href="{% url 'branch_create' %}">+ Create branch</a>
     </p>
     <ul>
-        {% for branch in branches %}
+        {% for branch in children %}
             <li><a href="{% url 'branch_detail' branch.id %}">{{ branch.name }}</a></li>
         {% endfor %}
     </ul>
