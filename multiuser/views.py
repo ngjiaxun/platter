@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
 from django.conf import settings
-from .models import Organisation, Business, Branch
+from .models import Entity, Organisation, Business, Branch
 from guardian.shortcuts import get_objects_for_user
 
 
@@ -50,7 +50,7 @@ class EntityDetailView(EntityMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if not self.is_leaf(): # Add children to the context if the model is not a bottom level entity
-            context['children'] = self.model.objects.filter(parent=self.object)
+            context['children'] = Entity.objects.filter(parent=self.object)
         return context
 
 
@@ -127,7 +127,7 @@ class BusinessCreateView(EntityCreateView):
     success_url = reverse_lazy('business_list') 
 
 
-class BusinessDetailView(LoginRequiredMixin, DetailView):
+class BusinessDetailView(EntityDetailView):
     model = Business
     template_name = 'business_detail.html'
     context_object_name = 'business'
@@ -193,7 +193,7 @@ class BranchCreateView(EntityCreateView):
     success_url = reverse_lazy('branch_list')
 
 
-class BranchDetailView(DetailView):
+class BranchDetailView(EntityDetailView):
     model = Branch
     template_name = 'branch_detail.html'
     context_object_name = 'branch'
