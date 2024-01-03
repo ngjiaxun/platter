@@ -12,7 +12,8 @@ class EntityMixin(LoginRequiredMixin):
     def get_parents_with_change_permission(self):
         if not self.model.is_top():
             user = self.request.user
-            return get_objects_for_user(user, f'multiuser.change_{self.model.prev_level()}')
+            prev_level = self.model.prev_level().lower()
+            return get_objects_for_user(user, f'multiuser.change_{prev_level}')
         return None
 
     def get_create_or_update_form(self, form_class=None):
@@ -37,7 +38,8 @@ class EntityCreateView(EntityMixin, CreateView):
 class EntityDetailView(EntityMixin, DetailView):
     def get_queryset(self):
         user = self.request.user
-        queryset = get_objects_for_user(user, f'multiuser.view_{self.model.curr_level()}')
+        curr_level = self.model.curr_level().lower()
+        queryset = get_objects_for_user(user, f'multiuser.view_{curr_level}')
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -50,7 +52,8 @@ class EntityDetailView(EntityMixin, DetailView):
 class EntityUpdateView(EntityMixin, UpdateView):
     def get_queryset(self):
         user = self.request.user
-        queryset = get_objects_for_user(user, f'multiuser.change_{self.model.curr_level()}')
+        curr_level = self.model.curr_level().lower()
+        queryset = get_objects_for_user(user, f'multiuser.change_{curr_level}')
         return queryset
 
     def get_form(self, form_class=None): 
