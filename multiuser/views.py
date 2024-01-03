@@ -9,6 +9,10 @@ from guardian.shortcuts import get_objects_for_user, get_perms
 
 
 class EntityMixin(LoginRequiredMixin):
+    PERM_VIEW = 'view'
+    PERM_CHANGE = 'change'
+    PERM_DELETE = 'delete'
+
     def get_form(self, form_class=None): # Overrides get_form() in CreateView and UpdateView 
         form = super().get_form(form_class)
         if self.model.is_top(): # If the model is a top level entity, hide the parent field
@@ -19,6 +23,11 @@ class EntityMixin(LoginRequiredMixin):
             form.fields['parent'].queryset = get_objects_for_user(user, f'multiuser.change_{prev_level}')
         return form
 
+    def get_objects_for_user_with_perm(self, perm): # Returns a queryset of objects for which the user has the specified permission
+        user = self.request.user
+        curr_level = self.model.curr_level().lower()
+        return get_objects_for_user(user, f'multiuser.{perm}_{curr_level}')
+
 
 class EntityCreateView(EntityMixin, CreateView):
     def form_valid(self, form):
@@ -28,10 +37,7 @@ class EntityCreateView(EntityMixin, CreateView):
 
 class EntityDetailView(EntityMixin, DetailView):
     def get_queryset(self):
-        user = self.request.user
-        curr_level = self.model.curr_level().lower()
-        queryset = get_objects_for_user(user, f'multiuser.view_{curr_level}')
-        return queryset
+        return self.get_objects_for_user_with_perm(self.PERM_VIEW)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -45,10 +51,7 @@ class EntityDetailView(EntityMixin, DetailView):
 
 class EntityUpdateView(EntityMixin, UpdateView):
     def get_queryset(self):
-        user = self.request.user
-        curr_level = self.model.curr_level().lower()
-        queryset = get_objects_for_user(user, f'multiuser.change_{curr_level}')
-        return queryset
+        return self.get_objects_for_user_with_perm(self.PERM_CHANGE)
 
 
 class OrganisationListView(LoginRequiredMixin, ListView):
