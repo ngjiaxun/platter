@@ -9,19 +9,14 @@ from guardian.shortcuts import get_objects_for_user, get_perms
 
 
 class EntityMixin(LoginRequiredMixin):
-    def get_parents_with_change_permission(self):
-        if not self.model.is_top():
-            user = self.request.user
-            prev_level = self.model.prev_level().lower()
-            return get_objects_for_user(user, f'multiuser.change_{prev_level}')
-        return None
-
     def get_form(self, form_class=None): # Overrides get_form() in CreateView and UpdateView 
         form = super().get_form(form_class)
         if self.model.is_top(): # If the model is a top level entity, hide the parent field
             form.fields['parent'].widget = form.fields['parent'].hidden_widget()
-        else: # If the model is not a top level entity, filter the parent field to only include parents the user has change permission for
-            form.fields['parent'].queryset = self.get_parents_with_change_permission()
+        else: # Otherwise, filter it to a list of those for which the user has change permission
+            user = self.request.user
+            prev_level = self.model.prev_level().lower()
+            form.fields['parent'].queryset = get_objects_for_user(user, f'multiuser.change_{prev_level}')
         return form
 
 
@@ -80,7 +75,7 @@ class OrganisationDetailView(EntityDetailView):
     context_object_name = 'organisation'
 
 
-class OrganisationUpdateView(LoginRequiredMixin, UpdateView):
+class OrganisationUpdateView(EntityUpdateView):
     model = Organisation
     template_name = 'organisation_update.html'
     fields = '__all__'
@@ -135,7 +130,7 @@ class BusinessDetailView(EntityDetailView):
     context_object_name = 'business'
 
 
-class BusinessUpdateView(LoginRequiredMixin, UpdateView):
+class BusinessUpdateView(EntityUpdateView):
     model = Business
     template_name = 'business_update.html'
     fields = '__all__'
@@ -191,7 +186,7 @@ class BranchDetailView(EntityDetailView):
     context_object_name = 'branch'
 
 
-class BranchUpdateView(UpdateView):
+class BranchUpdateView(EntityUpdateView):
     model = Branch
     template_name = 'branch_update.html'
     fields = '__all__'
