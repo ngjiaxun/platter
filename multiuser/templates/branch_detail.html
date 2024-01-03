@@ -4,7 +4,7 @@
     <h1>Branch detail</h1>
     <p>Branch fields: {{ branch.branch_fields }}</p>
     
-    {% if perms.multiuser.change_branch %}
-        <a href="{% url 'branch_update' branch.id %}">Update</a>
+    {% if has_change_perm %}
+        <a href="{% url 'branch_update' branch.id %}">Edit</a>
     {% endif %}
 {% endblock %}

@@ -5,7 +5,7 @@ from django.views.generic import ListView, CreateView, DetailView, UpdateView, D
 from django.urls import reverse_lazy, reverse
 from django.conf import settings
 from .models import Entity, Organisation, Business, Branch
-from guardian.shortcuts import get_objects_for_user
+from guardian.shortcuts import get_objects_for_user, get_perms
 
 
 class EntityMixin(LoginRequiredMixin):
@@ -18,10 +18,9 @@ class EntityMixin(LoginRequiredMixin):
 
     def get_form(self, form_class=None): # Overrides get_form() in CreateView and UpdateView 
         form = super().get_form(form_class)
-        # Populate the parent list field if the model is not a root level entity
-        if self.model.is_top(): 
+        if self.model.is_top(): # If the model is a top level entity, hide the parent field
             form.fields['parent'].widget = form.fields['parent'].hidden_widget()
-        else: 
+        else: # If the model is not a top level entity, filter the parent field to only include parents the user has change permission for
             form.fields['parent'].queryset = self.get_parents_with_change_permission()
         return form
 
@@ -41,6 +40,9 @@ class EntityDetailView(EntityMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user_perms = get_perms(self.request.user, self.object)
+        if f'change_{self.model.curr_level().lower()}' in user_perms: # Check whether the user has change permission for the object
+            context['has_change_perm'] = True
         if not self.model.is_bottom(): # Add children to the context if the model is not a bottom level entity
             context['children'] = Entity.objects.filter(parent=self.object)
         return context

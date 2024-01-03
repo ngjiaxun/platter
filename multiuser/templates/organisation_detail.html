@@ -4,8 +4,8 @@
     <h1>Organisation detail</h1>
     <p>Organisation fields: {{ organisation.organisation_fields }}</p>
 
-    {% if perms.multiuser.change_organisation %}
-        <a href="{% url 'organisation_update' organisation.id %}">Update</a>
+    {% if has_change_perm %}
+        <a href="{% url 'organisation_update' organisation.id %}">Edit</a>
     {% endif %}
 
     <h2>Businesses</h2>
