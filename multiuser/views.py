@@ -16,7 +16,7 @@ class EntityMixin(LoginRequiredMixin):
             return get_objects_for_user(user, f'multiuser.change_{prev_level}')
         return None
 
-    def get_create_or_update_form(self, form_class=None):
+    def get_form(self, form_class=None): # Overrides get_form() in CreateView and UpdateView 
         form = super().get_form(form_class)
         # Populate the parent list field if the model is not a root level entity
         if self.model.is_top(): 
@@ -30,9 +30,6 @@ class EntityCreateView(EntityMixin, CreateView):
     def form_valid(self, form):
         form.instance.created_by = self.request.user # Assign the user who created the instance to the created_by field
         return super().form_valid(form)
-
-    def get_form(self, form_class=None): 
-        return self.get_create_or_update_form()
 
 
 class EntityDetailView(EntityMixin, DetailView):
@@ -55,9 +52,6 @@ class EntityUpdateView(EntityMixin, UpdateView):
         curr_level = self.model.curr_level().lower()
         queryset = get_objects_for_user(user, f'multiuser.change_{curr_level}')
         return queryset
-
-    def get_form(self, form_class=None): 
-        return self.get_create_or_update_form()
 
 
 class OrganisationListView(LoginRequiredMixin, ListView):
