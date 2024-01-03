@@ -29,6 +29,11 @@ class EntityMixin(LoginRequiredMixin):
         return get_objects_for_user(user, f'multiuser.{perm}_{curr_level}')
 
 
+class EntityListView(EntityMixin, ListView):
+    def get_queryset(self):
+        return self.get_objects_for_user_with_perm(self.PERM_VIEW)
+
+
 class EntityCreateView(EntityMixin, CreateView):
     def form_valid(self, form):
         form.instance.created_by = self.request.user # Assign the user who created the instance to the created_by field
@@ -54,15 +59,10 @@ class EntityUpdateView(EntityMixin, UpdateView):
         return self.get_objects_for_user_with_perm(self.PERM_CHANGE)
 
 
-class OrganisationListView(LoginRequiredMixin, ListView):
+class OrganisationListView(EntityListView):
     model = Organisation
     template_name = 'organisation_list.html'
     context_object_name = 'organisations'
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.view_organisation') 
-        return queryset
 
 
 class OrganisationCreateView(EntityCreateView):
@@ -101,15 +101,10 @@ class OrganisationDeleteView(LoginRequiredMixin, DeleteView):
         return queryset
 
 
-class BusinessListView(LoginRequiredMixin, ListView):
+class BusinessListView(EntityListView):
     model = Business
     template_name = 'business_list.html'
     context_object_name = 'businesses'
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.view_business')
-        return queryset
 
     # def get_queryset(self):
     #     user = self.request.user
@@ -156,15 +151,10 @@ class BusinessDeleteView(LoginRequiredMixin, DeleteView):
         return queryset
 
 
-class BranchListView(ListView):
+class BranchListView(EntityListView):
     model = Branch
     template_name = 'branch_list.html'
     context_object_name = 'branches'
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.view_branch')
-        return queryset
 
     # def get_queryset(self):
     #     user = self.request.user
