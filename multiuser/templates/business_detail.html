@@ -4,8 +4,12 @@
     <h1>Business detail</h1>
     <p>Business fields: {{ business.business_fields }}</p>
 
-    {% if has_change_perm %}
+    {% if can_change %}
         <a href="{% url 'business_update' business.id %}">Edit</a>
+    {% endif %}
+
+    {% if can_delete %}
+        <a href="{% url 'business_delete' business.id %}">Delete</a>
     {% endif %}
 
     <h2>Branches</h2>

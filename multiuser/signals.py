@@ -22,8 +22,12 @@ def create_groups(instance, created):
         instance.created_by.groups.add(admin_group)
 
 def delete_groups(instance):
-    Group.objects.get(name=f'{instance.name}_{instance._meta.model_name}_admins').delete()
-    Group.objects.get(name=f'{instance.name}_{instance._meta.model_name}_users').delete()
+    admins_group = Group.objects.filter(name=f'{instance.name}_{instance._meta.model_name}_admins').first()
+    users_group = Group.objects.filter(name=f'{instance.name}_{instance._meta.model_name}_users').first()
+    if admins_group is not None:
+        admins_group.delete()
+    if users_group is not None:
+        users_group.delete()
 
 @receiver(post_save, sender=Organisation)
 def create_organisation_groups(sender, instance, created, **kwargs):

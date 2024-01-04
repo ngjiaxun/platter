@@ -16,6 +16,8 @@ class EntityMixin(LoginRequiredMixin):
 
     def get_form(self, form_class=None): # Overrides get_form() in CreateView and UpdateView 
         form = super().get_form(form_class)
+        if isinstance(self, DeleteView): # Don't override DeleteView
+            return form
         if self.model.is_top(): # If the model is a top level entity, hide the parent field
             form.fields['parent'].widget = form.fields['parent'].hidden_widget()
         else: # Otherwise, filter it to a list of those for which the user has change permission
@@ -70,9 +72,9 @@ class EntityDetailView(EntityMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # True if the user has 'change' permission for the current or ancestor models
-        entities = self.get_entities(self.PERM_CHANGE)
-        context['has_change_perm'] = self.object in entities
+        # Whether the user has relevant permissions for the current or ancestor models
+        context['can_change'] = self.object in self.get_entities(self.PERM_CHANGE)
+        context['can_delete'] = self.object in self.get_entities(self.PERM_DELETE)
         
         # Add children to the context if the model is not a bottom level entity
         if not self.model.is_bottom(): 
@@ -83,6 +85,11 @@ class EntityDetailView(EntityMixin, DetailView):
 class EntityUpdateView(EntityMixin, UpdateView):
     def get_queryset(self):
         return self.get_entities(self.PERM_CHANGE)
+
+
+class EntityDeleteView(EntityMixin, DeleteView):
+    def get_queryset(self):
+        return self.get_entities(self.PERM_DELETE)
 
 
 class OrganisationListView(EntityListView):
@@ -111,29 +118,16 @@ class OrganisationUpdateView(EntityUpdateView):
     context_object_name = 'organisation'
 
 
-class OrganisationDeleteView(LoginRequiredMixin, DeleteView):
+class OrganisationDeleteView(EntityDeleteView):
     model = Organisation
     template_name = 'organisation_confirm_delete.html'
     success_url = reverse_lazy('organisation_list')
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.delete_organisation')
-        return queryset
 
 
 class BusinessListView(EntityListView):
     model = Business
     template_name = 'business_list.html'
     context_object_name = 'businesses'
-
-    # def get_queryset(self):
-    #     user = self.request.user
-    #     queryset = super().get_queryset() # Get all businesses
-    #     organisations = get_objects_for_user(user, 'multiuser.view_organisation') # Get all organisations the user has view permission for
-    #     businesses = get_objects_for_user(user, 'multiuser.view_business') # Get all businesses the user has view permission for
-    #     queryset = queryset.filter(Q(organisation__in=organisations) | Q(pk__in=businesses)) # Filter the queryset to only include businesses that belong to the organisations the user has view permission for, or the user has view permission for
-    #     return queryset
 
 
 class BusinessCreateView(EntityCreateView):
@@ -156,30 +150,16 @@ class BusinessUpdateView(EntityUpdateView):
     context_object_name = 'business'
 
 
-class BusinessDeleteView(LoginRequiredMixin, DeleteView):
+class BusinessDeleteView(EntityDeleteView):
     model = Business
     template_name = 'business_confirm_delete.html'
     success_url = reverse_lazy('business_list')
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.delete_business')
-        return queryset
 
 
 class BranchListView(EntityListView):
     model = Branch
     template_name = 'branch_list.html'
     context_object_name = 'branches'
-
-    # def get_queryset(self):
-    #     user = self.request.user
-    #     queryset = super().get_queryset() # Get all branches
-    #     organisations = get_objects_for_user(user, 'multiuser.view_organisation') # Get all organisations the user has view permission for
-    #     businesses = get_objects_for_user(user, 'multiuser.view_business') # Get all businesses the user has view permission for
-    #     branches = get_objects_for_user(user, 'multiuser.view_branch') # Get all branches the user has view permission for
-    #     queryset = queryset.filter(Q(business__organisation__in=organisations) | Q(business__in=businesses) | Q(pk__in=branches)) # Filter the queryset to only include branches that belong to the organisations the user has view permission for, or the businesses the user has view permission for, or the user has view permission for
-    #     return queryset
 
 
 class BranchCreateView(EntityCreateView):
@@ -202,12 +182,7 @@ class BranchUpdateView(EntityUpdateView):
     context_object_name = 'branch'
 
 
-class BranchDeleteView(DeleteView):
+class BranchDeleteView(EntityDeleteView):
     model = Branch
     template_name = 'branch_confirm_delete.html'
     success_url = reverse_lazy('branch_list')
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.delete_branch')
-        return queryset
