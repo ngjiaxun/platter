@@ -4,10 +4,15 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
 from django.conf import settings
-from .models import Entity, Organisation, Business, Branch
+from .models import *
 from guardian.shortcuts import get_objects_for_user, get_perms
 from functools import reduce
 
+class InvitedUserCreateView(LoginRequiredMixin, CreateView):
+    model = InvitedUser
+    template_name = 'invited_user_create.html'
+    fields = ['email', 'entity', 'role']
+    success_url = reverse_lazy('organisation_list')
 
 class EntityMixin(LoginRequiredMixin):
     PERM_VIEW = 'view'

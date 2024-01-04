@@ -6,6 +6,17 @@ from django.contrib.auth.models import User
 from model_utils.managers import InheritanceManager
 
 
+class InvitedUser(models.Model):
+    email = models.EmailField()
+    entity = models.ForeignKey('Entity', on_delete=models.CASCADE)
+    role = models.CharField(max_length=100, choices=[(role, role) for role in settings.ENTITY_ROLES])
+    invited_by = models.ForeignKey(User, on_delete=models.CASCADE, editable=False)
+    accepted = models.BooleanField(default=False, editable=False)
+
+    def __str__(self):
+        return self.email
+
+
 class Entity(models.Model):
     objects = InheritanceManager()
 
@@ -45,7 +56,7 @@ class Entity(models.Model):
             raise ValidationError('Top level entities cannot have parents')
         if not self.is_top() and self.parent is None:
             raise ValidationError('Non top level entities must have parents')
-        if not self.is_top() and self.get_parent().curr_level() != self.prev_lvl_str():
+        if not self.is_top() and self.get_parent_model() != self.parent.__class__:
             raise ValidationError('Parent must be of the correct type')
 
     def __str__(self):

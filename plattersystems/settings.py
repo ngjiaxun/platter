@@ -139,3 +139,8 @@ ENTITY_HIERARCHY = [
     "Business",
     "Branch",
 ]
+
+ENTITY_ROLES = [
+    "Admin",
+    "User",
+]
