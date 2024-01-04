@@ -6,6 +6,7 @@ from django.urls import reverse_lazy, reverse
 from django.conf import settings
 from .models import Entity, Organisation, Business, Branch
 from guardian.shortcuts import get_objects_for_user, get_perms
+from functools import reduce
 
 
 class EntityMixin(LoginRequiredMixin):
@@ -19,44 +20,69 @@ class EntityMixin(LoginRequiredMixin):
             form.fields['parent'].widget = form.fields['parent'].hidden_widget()
         else: # Otherwise, filter it to a list of those for which the user has change permission
             user = self.request.user
-            prev_level = self.model.prev_level().lower()
-            form.fields['parent'].queryset = get_objects_for_user(user, f'multiuser.change_{prev_level}')
+            parent_model_str = self.model.get_parent_model().__name__.lower()
+            form.fields['parent'].queryset = get_objects_for_user(user, f'multiuser.change_{parent_model_str}')
         return form
 
-    def get_objects_for_user_with_perm(self, perm): # Returns a queryset of objects for which the user has the specified permission
+    # Returns a queryset of objects for which the user has the specified permission for the current model and ancestor models
+    # E.g. queryset.filter(Q(parent__parent__in=grandparent_objects) | Q(parent__in=parent_objects) | Q(pk__in=objects))
+    def get_entities(self, perm): 
         user = self.request.user
-        curr_level = self.model.curr_level().lower()
-        return get_objects_for_user(user, f'multiuser.{perm}_{curr_level}')
+        queryset = super().get_queryset() # Get all objects of the current model
+        q_objects = [] # Filter for the queryset
+
+        # Filter the list of objects for which the user has the specified permission for the current model
+        model_str = self.model.__name__.lower()
+        curr = get_objects_for_user(user, f'multiuser.{perm}_{model_str}')
+        q_objects.append(Q(pk__in=curr))
+
+        # Filter the list of objects for which the user has the specified permission for ancestor models
+        model = self.model
+        q_key = 'in'
+        while not model.is_top(): 
+            model = model.get_parent_model() 
+            model_str = model.__name__.lower()
+            objects = get_objects_for_user(user, f'multiuser.{perm}_{model_str}')
+            q_key = 'parent__' + q_key
+            q_dict = {q_key: objects}
+            q_objects.append(Q(**q_dict))
+
+        conditions = reduce(lambda x, y: x | y, q_objects)
+        return queryset.filter(conditions) 
 
 
 class EntityListView(EntityMixin, ListView):
     def get_queryset(self):
-        return self.get_objects_for_user_with_perm(self.PERM_VIEW)
+        return self.get_entities(self.PERM_VIEW)
 
 
 class EntityCreateView(EntityMixin, CreateView):
     def form_valid(self, form):
-        form.instance.created_by = self.request.user # Assign the user who created the instance to the created_by field
+        # Assign the user who created the instance to the created_by field
+        form.instance.created_by = self.request.user 
         return super().form_valid(form)
 
 
 class EntityDetailView(EntityMixin, DetailView):
     def get_queryset(self):
-        return self.get_objects_for_user_with_perm(self.PERM_VIEW)
+        return self.get_entities(self.PERM_VIEW)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_perms = get_perms(self.request.user, self.object)
-        if f'change_{self.model.curr_level().lower()}' in user_perms: # Check whether the user has change permission for the object
-            context['has_change_perm'] = True
-        if not self.model.is_bottom(): # Add children to the context if the model is not a bottom level entity
+
+        # True if the user has 'change' permission for the current or ancestor models
+        entities = self.get_entities(self.PERM_CHANGE)
+        context['has_change_perm'] = self.object in entities
+        
+        # Add children to the context if the model is not a bottom level entity
+        if not self.model.is_bottom(): 
             context['children'] = Entity.objects.filter(parent=self.object)
         return context
 
 
 class EntityUpdateView(EntityMixin, UpdateView):
     def get_queryset(self):
-        return self.get_objects_for_user_with_perm(self.PERM_CHANGE)
+        return self.get_entities(self.PERM_CHANGE)
 
 
 class OrganisationListView(EntityListView):
@@ -83,11 +109,6 @@ class OrganisationUpdateView(EntityUpdateView):
     template_name = 'organisation_update.html'
     fields = '__all__'
     context_object_name = 'organisation'
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.change_organisation')
-        return queryset
 
 
 class OrganisationDeleteView(LoginRequiredMixin, DeleteView):
@@ -134,11 +155,6 @@ class BusinessUpdateView(EntityUpdateView):
     fields = '__all__'
     context_object_name = 'business'
 
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.change_business')
-        return queryset
-
 
 class BusinessDeleteView(LoginRequiredMixin, DeleteView):
     model = Business
@@ -184,11 +200,6 @@ class BranchUpdateView(EntityUpdateView):
     template_name = 'branch_update.html'
     fields = '__all__'
     context_object_name = 'branch'
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = get_objects_for_user(user, 'multiuser.change_branch')
-        return queryset
 
 
 class BranchDeleteView(DeleteView):

@@ -1,4 +1,5 @@
 from django.db import models
+from django.apps import apps
 from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -25,20 +26,16 @@ class Entity(models.Model):
         return cls.get_rank() == len(settings.ENTITY_HIERARCHY) - 1
 
     @classmethod
-    def prev_level(cls): # Returns the name of the model one level up in the hierarchy as a string
+    def get_parent_model(cls): # Returns the model one level up in the hierarchy
         if cls.is_top():
             return None
-        return settings.ENTITY_HIERARCHY[cls.get_rank() - 1]
+        return apps.get_model('multiuser', settings.ENTITY_HIERARCHY[cls.get_rank() - 1])
 
     @classmethod
-    def curr_level(cls): # Returns the name of the model as a string
-        return cls.__name__
-
-    @classmethod
-    def next_level(cls): # Returns the name of the model one level down in the hierarchy as a string
+    def get_child_model(cls):
         if cls.is_bottom():
             return None
-        return settings.ENTITY_HIERARCHY[cls.get_rank() + 1]
+        return apps.get_model('multiuser', settings.ENTITY_HIERARCHY[cls.get_rank() + 1])
 
     def get_parent(self): # Returns the parent instance as the correct subclass instead of just an Entity instance
         return Entity.objects.select_subclasses().get(id=self.parent.id)
@@ -48,7 +45,7 @@ class Entity(models.Model):
             raise ValidationError('Top level entities cannot have parents')
         if not self.is_top() and self.parent is None:
             raise ValidationError('Non top level entities must have parents')
-        if not self.is_top() and self.get_parent().curr_level() != self.prev_level():
+        if not self.is_top() and self.get_parent().curr_level() != self.prev_lvl_str():
             raise ValidationError('Parent must be of the correct type')
 
     def __str__(self):
