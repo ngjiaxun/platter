@@ -18,7 +18,8 @@
       <a href="{% url 'branch_list' %}">Your branches</a>
     </p>
     <p>
-      <a href="{% url 'inviteduser_create' %}">Invite people</a>
+      <a href="{% url 'inviteduser_create' %}">Invite user</a> | 
+      <a href="{% url 'inviteduser_list' %}">Your invitations</a> |
     </p>
     {% block content %}
     {% endblock %}

@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Invited users</h1>
+    <ul>
+        {% for invited_user in invited_users %}
+            <li>{{ invited_user.email }} | {{ invited_user.entity }} | {{ invited_user.role }}</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

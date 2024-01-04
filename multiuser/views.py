@@ -8,11 +8,30 @@ from .models import *
 from guardian.shortcuts import get_objects_for_user, get_perms
 from functools import reduce
 
+
 class InvitedUserCreateView(LoginRequiredMixin, CreateView):
     model = InvitedUser
     template_name = 'invited_user_create.html'
     fields = ['email', 'entity', 'role']
     success_url = reverse_lazy('organisation_list')
+
+    def form_valid(self, form):
+        # Assign the user who created the instance to the invted_by field
+        form.instance.invited_by = self.request.user 
+        return super().form_valid(form)
+
+
+class InvitedUserListView(LoginRequiredMixin, ListView):
+    model = InvitedUser
+    template_name = 'invited_user_list.html'
+    context_object_name = 'invited_users'
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+        queryset = queryset.filter(invited_by=user).filter(accepted=False)
+        return queryset
+
 
 class EntityMixin(LoginRequiredMixin):
     PERM_VIEW = 'view'
