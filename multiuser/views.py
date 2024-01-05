@@ -1,12 +1,9 @@
 from django.shortcuts import render
-from django.db.models import Q
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
 from django.conf import settings
 from .models import *
-from guardian.shortcuts import get_objects_for_user, get_perms
-from functools import reduce
 
 
 class InvitedUserCreateView(LoginRequiredMixin, CreateView):
@@ -14,6 +11,19 @@ class InvitedUserCreateView(LoginRequiredMixin, CreateView):
     template_name = 'invited_user_create.html'
     fields = ['email', 'entity', 'role']
     success_url = reverse_lazy('organisation_list')
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        user = self.request.user
+        queryset = Entity.objects.none()
+
+        # Only allow the user to invite others to entities for which they have change permission
+        for model in Entity.get_all_models():
+            sub_queryset = model.get_objects_for_user(user, Entity.PERM_CHANGE)
+            queryset = queryset | Entity.objects.filter(id__in=sub_queryset)
+            
+        form.fields['entity'].queryset = queryset
+        return form
 
     def form_valid(self, form):
         # Assign the user who created the instance to the invted_by field
@@ -34,52 +44,22 @@ class InvitedUserListView(LoginRequiredMixin, ListView):
 
 
 class EntityMixin(LoginRequiredMixin):
-    PERM_VIEW = 'view'
-    PERM_CHANGE = 'change'
-    PERM_DELETE = 'delete'
-
-    def get_form(self, form_class=None): # Overrides get_form() in CreateView and UpdateView 
-        form = super().get_form(form_class)
-        if isinstance(self, DeleteView): # Don't override DeleteView
+        def get_form(self, form_class=None): # Overrides get_form() in CreateView and UpdateView 
+            form = super().get_form(form_class)
+            if isinstance(self, DeleteView): # Don't override the form for the DeleteView
+                return form
+            if self.model.is_top(): # Top level entities don't have a parent field
+                form.fields['parent'].widget = form.fields['parent'].hidden_widget()
+            else: # Only allow the user to select parents for which they have change permission
+                user = self.request.user
+                parent_model_str = self.model.get_parent_model().__name__.lower()
+                form.fields['parent'].queryset = get_objects_for_user(user, f'multiuser.change_{parent_model_str}')
             return form
-        if self.model.is_top(): # If the model is a top level entity, hide the parent field
-            form.fields['parent'].widget = form.fields['parent'].hidden_widget()
-        else: # Otherwise, filter it to a list of those for which the user has change permission
-            user = self.request.user
-            parent_model_str = self.model.get_parent_model().__name__.lower()
-            form.fields['parent'].queryset = get_objects_for_user(user, f'multiuser.change_{parent_model_str}')
-        return form
-
-    # Returns a queryset of objects for which the user has the specified permission for the current model and ancestor models
-    # E.g. queryset.filter(Q(parent__parent__in=grandparent_objects) | Q(parent__in=parent_objects) | Q(pk__in=objects))
-    def get_entities(self, perm): 
-        user = self.request.user
-        queryset = super().get_queryset() # Get all objects of the current model
-        q_objects = [] # Filter for the queryset
-
-        # Filter the list of objects for which the user has the specified permission for the current model
-        model_str = self.model.__name__.lower()
-        curr = get_objects_for_user(user, f'multiuser.{perm}_{model_str}')
-        q_objects.append(Q(pk__in=curr))
-
-        # Filter the list of objects for which the user has the specified permission for ancestor models
-        model = self.model
-        q_key = 'in'
-        while not model.is_top(): 
-            model = model.get_parent_model() 
-            model_str = model.__name__.lower()
-            objects = get_objects_for_user(user, f'multiuser.{perm}_{model_str}')
-            q_key = 'parent__' + q_key
-            q_dict = {q_key: objects}
-            q_objects.append(Q(**q_dict))
-
-        conditions = reduce(lambda x, y: x | y, q_objects)
-        return queryset.filter(conditions) 
 
 
 class EntityListView(EntityMixin, ListView):
     def get_queryset(self):
-        return self.get_entities(self.PERM_VIEW)
+        return self.model.get_objects_for_user(self.request.user, Entity.PERM_VIEW)
 
 
 class EntityCreateView(EntityMixin, CreateView):
@@ -91,14 +71,14 @@ class EntityCreateView(EntityMixin, CreateView):
 
 class EntityDetailView(EntityMixin, DetailView):
     def get_queryset(self):
-        return self.get_entities(self.PERM_VIEW)
+        return self.model.get_objects_for_user(self.request.user, Entity.PERM_VIEW)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         # Whether the user has relevant permissions for the current or ancestor models
-        context['can_change'] = self.object in self.get_entities(self.PERM_CHANGE)
-        context['can_delete'] = self.object in self.get_entities(self.PERM_DELETE)
+        context['can_change'] = self.object in self.model.get_objects_for_user(self.request.user, Entity.PERM_CHANGE)
+        context['can_delete'] = self.object in self.model.get_objects_for_user(self.request.user, Entity.PERM_DELETE)
         
         # Add children to the context if the model is not a bottom level entity
         if not self.model.is_bottom(): 
@@ -108,12 +88,12 @@ class EntityDetailView(EntityMixin, DetailView):
 
 class EntityUpdateView(EntityMixin, UpdateView):
     def get_queryset(self):
-        return self.get_entities(self.PERM_CHANGE)
+        return self.model.get_objects_for_user(self.request.user, Entity.PERM_CHANGE)
 
 
 class EntityDeleteView(EntityMixin, DeleteView):
     def get_queryset(self):
-        return self.get_entities(self.PERM_DELETE)
+        return self.model.get_objects_for_user(self.request.user, Entity.PERM_DELETE)
 
 
 class OrganisationListView(EntityListView):
