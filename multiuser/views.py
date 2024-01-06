@@ -1,14 +1,41 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
+from django.contrib.auth.models import Group
+from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView, View
 from django.urls import reverse_lazy, reverse
 from django.conf import settings
 from .models import *
 
 
-class InvitedUserCreateView(LoginRequiredMixin, CreateView):
-    model = InvitedUser
-    template_name = 'invited_user_create.html'
+class InvitationSentListView(LoginRequiredMixin, ListView):
+    model = Invitation
+    template_name = 'invitation_sent_list.html'
+    context_object_name = 'invitations'
+
+    def get_queryset(self):
+        user = self.request.user
+        print(f"User: {user}")
+        queryset = super().get_queryset()
+        queryset = queryset.filter(invited_by=user).filter(accepted=False)
+        print(f"Queryset: {queryset}")
+        return queryset
+
+
+class InvitationReceivedListView(LoginRequiredMixin, ListView):
+    model = Invitation
+    template_name = 'invitation_received_list.html'
+    context_object_name = 'invitations'
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+        queryset = queryset.filter(email=user.email).filter(accepted=False)
+        return queryset
+
+
+class InvitationCreateView(LoginRequiredMixin, CreateView):
+    model = Invitation
+    template_name = 'invitation_create.html'
     fields = ['email', 'entity', 'role']
     success_url = reverse_lazy('organisation_list')
 
@@ -31,28 +58,28 @@ class InvitedUserCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class InvitedUserSentListView(LoginRequiredMixin, ListView):
-    model = InvitedUser
-    template_name = 'invited_user_sent_list.html'
-    context_object_name = 'invited_users'
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = super().get_queryset()
-        queryset = queryset.filter(invited_by=user).filter(accepted=False)
-        return queryset
+class InvitationAcceptView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        invitation = get_object_or_404(Invitation, pk=kwargs['pk'])
+        invitation.accepted = True
+        invitation.save()
 
 
-class InvitedUserReceivedListView(LoginRequiredMixin, ListView):
-    model = InvitedUser
-    template_name = 'invited_user_received_list.html'
-    context_object_name = 'invited_users'
+        # # Create the user group
+        # user_group, created = Group.objects.get_or_create(name=f'{instance.name}_{instance.pk}_{instance._meta.model_name}_{user_role}')
+        # # Assign the view permission for the instance to the user group
+        # assign_perm(f'view_{instance._meta.model_name}', user_group, instance)
 
-    def get_queryset(self):
-        user = self.request.user
-        queryset = super().get_queryset()
-        queryset = queryset.filter(email=user.email).filter(accepted=False)
-        return queryset
+        # # Add the user who created the instance to the admin group
+        # instance.created_by.groups.add(admin_group)
+
+
+        # Add the user to the relevant group
+        role = invitation.role.lower() + 's'
+        group = Group.objects.get(name=f'{invitation.entity.name}_{invitation.entity.pk}_{invitation.entity._meta.model_name}_{role}')
+        request.user.groups.add(group)
+
+        return redirect('organisation_list')
 
 
 class EntityMixin(LoginRequiredMixin):

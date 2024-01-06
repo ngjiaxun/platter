@@ -2,9 +2,10 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('inviteduser/create/', views.InvitedUserCreateView.as_view(), name='inviteduser_create'),
-    path('inviteduser/sent/', views.InvitedUserSentListView.as_view(), name='invitedusersent_list'),
-    path('inviteduser/received/', views.InvitedUserReceivedListView.as_view(), name='inviteduserreceived_list'),
+    path('invitation/create/', views.InvitationCreateView.as_view(), name='invitation_create'),
+    path('invitation/sent/', views.InvitationSentListView.as_view(), name='invitationsent_list'),
+    path('invitation/received/', views.InvitationReceivedListView.as_view(), name='invitationreceived_list'),
+    path('invitation/<int:pk>/accept/', views.InvitationAcceptView.as_view(), name='invitation_accept'),
     path('organisation/', views.OrganisationListView.as_view(), name='organisation_list'),
     path('organisation/create/', views.OrganisationCreateView.as_view(), name='organisation_create'),
     path('organisation/<int:pk>/', views.OrganisationDetailView.as_view(), name='organisation_detail'),

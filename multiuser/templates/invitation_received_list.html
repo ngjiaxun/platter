@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Invitations received</h1>
+    <ul>
+        {% for invitation in invitations %}
+            <li>{{ invitation.invited_by }} has invited you to be a/an {{ invitation.role }} for {{ invitation.entity }} </li>
+            <form method="POST" action="{% url 'inviteduser_accept' invitation.id %}">
+                {% csrf_token %}
+                <button type="submit" name="accept" value="{{ invitation.id }}">Accept</button>
+            </form>
+            <form method="POST" action="">
+                    {% csrf_token %}
+                <button type="submit" name="reject" value="{{ invitation.id }}">Reject</button>
+            </form>
+        {% endfor %}
+    </ul>
+{% endblock %}

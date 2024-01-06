@@ -5,7 +5,7 @@ from django.conf import settings
 from guardian.shortcuts import assign_perm
 from .models import Organisation, Business, Branch
 
-def create_groups(instance, created):
+def _create_groups(instance, created):
     if created:
         admin_role = settings.ENTITY_ROLES[0].lower() + 's'
         user_role = settings.ENTITY_ROLES[1].lower() + 's'
@@ -25,7 +25,7 @@ def create_groups(instance, created):
         # Add the user who created the instance to the admin group
         instance.created_by.groups.add(admin_group)
 
-def delete_groups(instance):
+def _delete_groups(instance):
     admins_group = Group.objects.filter(name=f'{instance.name}_{instance._meta.model_name}_admins').first()
     users_group = Group.objects.filter(name=f'{instance.name}_{instance._meta.model_name}_users').first()
     if admins_group is not None:
@@ -33,26 +33,28 @@ def delete_groups(instance):
     if users_group is not None:
         users_group.delete()
 
+# Whenever an entity object is created, create the admin and user groups for that entity
 @receiver(post_save, sender=Organisation)
 def create_organisation_groups(sender, instance, created, **kwargs):
-    create_groups(instance, created)
+    _create_groups(instance, created)
 
+# Whenever an entity object is deleted, delete the admin and user groups for that entity
 @receiver(post_delete, sender=Organisation)
 def delete_organisation_groups(sender, instance, **kwargs):
-    delete_groups(instance)
+    _delete_groups(instance)
 
 @receiver(post_save, sender=Business)
 def create_business_groups(sender, instance, created, **kwargs):
-    create_groups(instance, created)
+    _create_groups(instance, created)
 
 @receiver(post_delete, sender=Business)
 def delete_business_groups(sender, instance, **kwargs):
-    delete_groups(instance)
+    _delete_groups(instance)
 
 @receiver(post_save, sender=Branch)
 def create_branch_groups(sender, instance, created, **kwargs):
-    create_groups(instance, created)
+    _create_groups(instance, created)
 
 @receiver(post_delete, sender=Branch)
 def delete_branch_groups(sender, instance, **kwargs):
-    delete_groups(instance)
+    _delete_groups(instance)

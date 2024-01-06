@@ -9,7 +9,7 @@ from guardian.shortcuts import get_objects_for_user
 from functools import reduce
 
 
-class InvitedUser(models.Model):
+class Invitation(models.Model):
     email = models.EmailField()
     entity = models.ForeignKey('Entity', on_delete=models.CASCADE)
     role = models.CharField(max_length=100, choices=[(role, role) for role in settings.ENTITY_ROLES])
