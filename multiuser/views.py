@@ -21,8 +21,8 @@ class InvitedUserCreateView(LoginRequiredMixin, CreateView):
         for model in Entity.get_all_models():
             sub_queryset = model.get_objects_for_user(user, Entity.PERM_CHANGE)
             queryset = queryset | Entity.objects.filter(id__in=sub_queryset)
-            
         form.fields['entity'].queryset = queryset
+
         return form
 
     def form_valid(self, form):
@@ -31,15 +31,27 @@ class InvitedUserCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class InvitedUserListView(LoginRequiredMixin, ListView):
+class InvitedUserSentListView(LoginRequiredMixin, ListView):
     model = InvitedUser
-    template_name = 'invited_user_list.html'
+    template_name = 'invited_user_sent_list.html'
     context_object_name = 'invited_users'
 
     def get_queryset(self):
         user = self.request.user
         queryset = super().get_queryset()
         queryset = queryset.filter(invited_by=user).filter(accepted=False)
+        return queryset
+
+
+class InvitedUserReceivedListView(LoginRequiredMixin, ListView):
+    model = InvitedUser
+    template_name = 'invited_user_received_list.html'
+    context_object_name = 'invited_users'
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+        queryset = queryset.filter(email=user.email).filter(accepted=False)
         return queryset
 
 

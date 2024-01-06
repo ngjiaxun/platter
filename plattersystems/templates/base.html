@@ -19,8 +19,8 @@
     </p>
     <p>
       <a href="{% url 'inviteduser_create' %}">Invite user</a> | 
-      <a href="{% url 'inviteduser_list' %}">Invitations you sent</a> |
-      <a href="#">Invitations you received</a>
+      <a href="{% url 'invitedusersent_list' %}">Invitations you sent</a> |
+      <a href="{% url 'inviteduserreceived_list' %}">Invitations you received</a>
     </p>
     {% block content %}
     {% endblock %}
