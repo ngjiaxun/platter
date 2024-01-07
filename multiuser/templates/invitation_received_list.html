@@ -5,7 +5,7 @@
     <ul>
         {% for invitation in invitations %}
             <li>{{ invitation.invited_by }} has invited you to be a/an {{ invitation.role }} for {{ invitation.entity }} </li>
-            <form method="POST" action="{% url 'inviteduser_accept' invitation.id %}">
+            <form method="POST" action="{% url 'invitation_accept' invitation.id %}">
                 {% csrf_token %}
                 <button type="submit" name="accept" value="{{ invitation.id }}">Accept</button>
             </form>

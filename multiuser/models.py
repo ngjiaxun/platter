@@ -3,38 +3,37 @@ from django.db.models import Q
 from django.apps import apps
 from django.urls import reverse
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from model_utils.managers import InheritanceManager
-from guardian.shortcuts import get_objects_for_user
+from guardian.shortcuts import get_objects_for_user, assign_perm
 from functools import reduce
 
 
 class Invitation(models.Model):
     email = models.EmailField()
-    entity = models.ForeignKey('Entity', on_delete=models.CASCADE)
+    entity = models.ForeignKey('Entity', on_delete=models.CASCADE) 
     role = models.CharField(max_length=100, choices=[(role, role) for role in settings.ENTITY_ROLES])
     invited_by = models.ForeignKey(User, on_delete=models.CASCADE, editable=False)
     accepted = models.BooleanField(default=False, editable=False)
+
+    def accept(self, user):
+        entity = self.entity.select_subclass() # Downcast
+        group_name = entity.get_group_name(self.role)
+        group = entity.get_group(self.role)
+        user.groups.add(group)
+        self.accepted = True
+        self.save()
 
     def __str__(self):
         return self.email
 
 
-class EntityManager(InheritanceManager):
-    def get_parent(self): # Returns the parent instance as the correct subclass instead of just an Entity instance
-        return Entity.objects.select_subclasses().get(id=self.parent.id)
-
-
 class Entity(models.Model):
-    PERM_VIEW = 'view'
-    PERM_CHANGE = 'change'
-    PERM_DELETE = 'delete'
-
     name = models.CharField(max_length=100)
-    created_by = models.ForeignKey(User, on_delete=models.SET_DEFAULT, editable=False, default=1) # Used to assign the user who created the instance to the admin group
+    created_by = models.ForeignKey(User, on_delete=models.SET_DEFAULT, editable=False, default=1) 
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
 
-    objects = EntityManager()
+    objects = InheritanceManager()
 
     @classmethod
     def get_rank(cls):
@@ -89,6 +88,38 @@ class Entity(models.Model):
 
         conditions = reduce(lambda x, y: x | y, q_objects)
         return queryset.filter(conditions) 
+
+    # If you have a foreign key that references the Entity base class, use this method to downcast it when you need to access subclass fields
+    def select_subclass(self):
+        return Entity.objects.select_subclasses().get(id=self.id)
+
+    def get_group_name(self, role):
+        return f'{self.name}_{self.pk}_{self._meta.model_name}_{settings.ENTITY_ROLES[role]["group_name"]}'
+
+    def get_group(self, role):
+        group_name = self.get_group_name(role)
+        return Group.objects.filter(name=group_name).first()
+
+    def create_groups(self):
+        for role in settings.ENTITY_ROLES:
+            group_name = self.get_group_name(role)
+            group, created = Group.objects.get_or_create(name=group_name)
+            for permission in settings.ENTITY_ROLES[role]['permissions']:
+                assign_perm(f'{permission}_{self._meta.model_name}', group, self)
+
+    def delete_groups(self):
+        for role in settings.ENTITY_ROLES:
+            group_name = self.get_group_name(role)
+            group = Group.objects.filter(name=group_name).first()
+            if group is not None:
+                group.delete()
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Create the admin group and other groups for this entity instance
+        self.create_groups()
+        # Add the user who created the entity instance to its admin group
+        self.created_by.groups.add(self.get_group(settings.ENTITY_ROLE_ADMIN))
 
     def clean(self):
         if self.is_top() and self.parent is not None:

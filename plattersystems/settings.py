@@ -134,13 +134,26 @@ AUTHENTICATION_BACKENDS = (
 LOGIN_REDIRECT_URL = "/multiuser/organisation/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
+ENTITY_ROLE_ADMIN = 'Admin'
+ENTITY_ROLE_USER = 'User'
+
+ENTITY_PERM_VIEW = 'view'
+ENTITY_PERM_CHANGE = 'change'
+ENTITY_PERM_DELETE = 'delete'
+
+ENTITY_ROLES = {
+    ENTITY_ROLE_ADMIN: {
+        'permissions': [ENTITY_PERM_VIEW, ENTITY_PERM_CHANGE, ENTITY_PERM_DELETE],
+        'group_name': 'admins',
+    },
+    ENTITY_ROLE_USER: {
+        'permissions': [ENTITY_PERM_VIEW],
+        'group_name': 'users',
+    },
+}
+
 ENTITY_HIERARCHY = [
     "Organisation",
     "Business",
     "Branch",
-]
-
-ENTITY_ROLES = [
-    "Admin",
-    "User",
 ]
