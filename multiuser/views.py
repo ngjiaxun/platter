@@ -36,7 +36,7 @@ class InvitationCreateView(LoginRequiredMixin, CreateView):
     model = Invitation
     template_name = 'invitation_create.html'
     fields = ['email', 'entity', 'role']
-    success_url = reverse_lazy('organisation_list')
+    success_url = reverse_lazy('invitationsent_list')
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -61,7 +61,21 @@ class InvitationAcceptView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         invitation = get_object_or_404(Invitation, pk=kwargs['pk'])
         invitation.accept(request.user)
-        return redirect('organisation_list')
+        return redirect('invitationreceived_list')
+
+
+class InvitationRejectView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        invitation = get_object_or_404(Invitation, pk=kwargs['pk'])
+        invitation.delete()
+        return redirect('invitationreceived_list')
+
+
+class InvitationCancelView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        invitation = get_object_or_404(Invitation, pk=kwargs['pk'])
+        invitation.delete()
+        return redirect('invitationsent_list')
 
 
 class EntityMixin(LoginRequiredMixin):

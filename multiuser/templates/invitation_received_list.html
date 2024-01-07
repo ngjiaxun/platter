@@ -9,7 +9,7 @@
                 {% csrf_token %}
                 <button type="submit" name="accept" value="{{ invitation.id }}">Accept</button>
             </form>
-            <form method="POST" action="">
+            <form method="POST" action="{% url 'invitation_reject' invitation.id %}">
                     {% csrf_token %}
                 <button type="submit" name="reject" value="{{ invitation.id }}">Reject</button>
             </form>

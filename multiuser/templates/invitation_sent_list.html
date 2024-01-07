@@ -5,6 +5,10 @@
     <ul>
         {% for invitation in invitations %}
             <li>{{ invitation.email }} | {{ invitation.entity }} | {{ invitation.role }}</li>
+            <form method="POST" action="{% url 'invitation_cancel' invitation.id %}">
+                {% csrf_token %}
+            <button type="submit" name="cancel" value="{{ invitation.id }}">Cancel</button>
+        </form>
         {% endfor %}
     </ul>
 {% endblock %}
