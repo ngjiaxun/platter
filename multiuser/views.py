@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import User, Group
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView, View
 from django.urls import reverse_lazy, reverse
+from django.db.models import Prefetch, F
 from django.conf import settings
-from .models import *
-from guardian.shortcuts import get_groups_with_perms
+from .models import Invitation, Entity, Organisation, Business, Branch
+from guardian.shortcuts import get_objects_for_user, get_groups_with_perms, get_users_with_perms
 
 
 class InvitationSentListView(LoginRequiredMixin, ListView):
@@ -79,16 +80,16 @@ class InvitationCancelView(LoginRequiredMixin, View):
 
 
 class EntityMixin(LoginRequiredMixin):
-    def get_form(self, form_class=None): # Overrides get_form() in CreateView and UpdateView 
+    def get_form(self, form_class=None): 
         form = super().get_form(form_class)
-        if isinstance(self, DeleteView): # Don't override the form for the DeleteView
-            return form
-        if self.model.is_top(): # Top level entities don't have a parent field
-            form.fields['parent'].widget = form.fields['parent'].hidden_widget()
-        else: # Only allow the user to select parents for which they have change permission
-            user = self.request.user
-            parent_model_str = self.model.get_parent_model().__name__.lower()
-            form.fields['parent'].queryset = get_objects_for_user(user, f'multiuser.change_{parent_model_str}')
+        # Only override CreateView and UpdateView 
+        if isinstance(self, CreateView) or isinstance(self, UpdateView):
+            if self.model.is_top(): # Top level entities don't have a parent field
+                form.fields['parent'].widget = form.fields['parent'].hidden_widget()
+            else: # Only allow the user to select parents for which they have change permission
+                user = self.request.user
+                parent_model_str = self.model.get_parent_model().__name__.lower()
+                form.fields['parent'].queryset = get_objects_for_user(user, f'multiuser.change_{parent_model_str}')
         return form
 
 
@@ -118,7 +119,29 @@ class EntityDetailView(EntityMixin, DetailView):
         # Add children to the context if the model is not a bottom level entity
         if not self.model.is_bottom(): 
             context['children'] = Entity.objects.filter(parent=self.object)
+
+        # Current user can manage users if they have change permission 
+        if self.object in self.model.get_objects_for_user(self.request.user, settings.ENTITY_PERM_CHANGE):
+            # Get the groups pertaining to the entity instance
+            groups = get_groups_with_perms(self.object)
+            groups = groups.annotate(role=F('name'))
+            groups = Prefetch('groups', queryset=groups, to_attr='object_groups')
+            # Get the users who have any permission for the entity instance
+            users = get_users_with_perms(self.object)
+            users = users.prefetch_related(groups).exclude(id=self.request.user.id) # Exclude the current user
+            for user in users:
+                for group in user.object_groups:
+                    group.role = Entity.get_role(group.name)
+            context['users'] = users
+
         return context
+
+    def post(self, request, *args, **kwargs):
+        if '/removeuser/' in self.request.path:
+            user = get_object_or_404(User, pk=self.kwargs['user_pk'])
+            group = get_object_or_404(Group, pk=self.kwargs['group_pk'])
+            user.groups.remove(group)
+        return redirect(self.request.path)
 
 
 class EntityUpdateView(EntityMixin, UpdateView):

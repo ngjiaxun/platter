@@ -21,4 +21,11 @@
             <li><a href="{% url 'business_detail' business.id %}">{{ business.name }}</a></li>
         {% endfor %}
     </ul>
+
+    <h2>Users</h2>
+    <ul>
+        {% for user in users %}
+            <li>{{ user }}</li>
+        {% endfor %}
+    </ul>
 {% endblock %}

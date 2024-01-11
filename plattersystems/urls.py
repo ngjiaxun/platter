@@ -24,4 +24,5 @@ urlpatterns = [
     path('sign-up', views.sign_up, name='sign_up'),
     path('multiuser/', include('multiuser.urls')),
     path('', views.home, name='home'),
+    path('__debug__/', include('debug_toolbar.urls')),
 ]

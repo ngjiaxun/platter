@@ -11,4 +11,11 @@
     {% if can_delete %}
         <a href="{% url 'branch_delete' branch.id %}">Delete</a>
     {% endif %}
+
+    <h2>Users</h2>
+    <ul>
+        {% for user in users %}
+            <li>{{ user }}</li>
+        {% endfor %}
+    </ul>
 {% endblock %}

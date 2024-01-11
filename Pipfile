@@ -7,6 +7,7 @@ name = "pypi"
 django = "*"
 django-guardian = "*"
 django-model-utils = "*"
+django-debug-toolbar = "*"
 
 [dev-packages]
 

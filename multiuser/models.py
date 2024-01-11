@@ -48,6 +48,14 @@ class Entity(models.Model):
         return cls.get_rank() == len(settings.ENTITY_HIERARCHY) - 1
 
     @classmethod
+    def get_top_model(cls):
+        return apps.get_model('multiuser', settings.ENTITY_HIERARCHY[0])
+
+    @classmethod
+    def get_bottom_model(cls):
+        return apps.get_model('multiuser', settings.ENTITY_HIERARCHY[-1])
+
+    @classmethod
     def get_all_models(cls):
         return [apps.get_model('multiuser', model) for model in settings.ENTITY_HIERARCHY]
 
@@ -88,6 +96,14 @@ class Entity(models.Model):
 
         conditions = reduce(lambda x, y: x | y, q_objects)
         return queryset.filter(conditions) 
+
+    @classmethod
+    def get_role(cls, group_name):
+        group_name = group_name.split('_')[-1]
+        for role, role_data in settings.ENTITY_ROLES.items():
+            if role_data['group_name'] == group_name:
+                return role
+        return None
 
     # If you have a foreign key that references the Entity base class, use this method to downcast it when you need to access subclass fields
     def select_subclass(self):
