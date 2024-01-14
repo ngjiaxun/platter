@@ -4,6 +4,8 @@ from django.apps import apps
 from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.models import User, Group
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 from model_utils.managers import InheritanceManager
 from guardian.shortcuts import get_objects_for_user, assign_perm
 from functools import reduce
@@ -32,6 +34,10 @@ class Entity(models.Model):
     name = models.CharField(max_length=100)
     created_by = models.ForeignKey(User, on_delete=models.SET_DEFAULT, editable=False, default=1) 
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+    # Content type fields
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, editable=False)
+    object_id = models.PositiveIntegerField(editable=False)
+    content_object = GenericForeignKey('content_type', 'object_id')
 
     objects = InheritanceManager()
 
