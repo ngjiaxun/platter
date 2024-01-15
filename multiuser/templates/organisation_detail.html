@@ -14,7 +14,7 @@
 
     <h2>Businesses</h2>
     <p>
-        <a href="{% url 'business_create' %}">+ Create business</a>
+        <a href="{% url 'business_create' organisation.id %}">+ Create business</a>
     </p>
     <ul>
         {% for business in children %}

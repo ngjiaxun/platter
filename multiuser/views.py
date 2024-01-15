@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
+from django.contrib.contenttypes.models import ContentType
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView, View
 from django.urls import reverse_lazy, reverse
 from django.db.models import Prefetch, F
@@ -106,16 +107,17 @@ class EntityDetailView(EntityMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        entities_that_user_can_change = Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_CHANGE)
-        entities_that_user_can_delete = Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_DELETE)
+        entities_user_can_change = Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_CHANGE)
+        entities_user_can_delete = Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_DELETE)
 
         # Whether the user has relevant permissions for the current or ancestor models
-        context['can_change'] = entities_that_user_can_change.filter(content_object=self.object).exists()
-        context['can_delete'] = entities_that_user_can_delete.filter(content_object=self.object).exists()
+        context['can_change'] = self.object in entities_user_can_change
+        context['can_delete'] = self.object in entities_user_can_delete
         
         # Add children to the context if the model is not a bottom level entity
         if not Entity.is_bottom(self.model): 
-            context['children'] = Entity.objects.filter(parent=Entity.objects.get(content_object=self.object))
+            content_type = ContentType.objects.get_for_model(self.object)
+            context['children'] = Entity.objects.filter(parent__content_type=content_type, parent__object_id=self.object.id)
 
         # Current user can manage users if they have change permission 
         if context['can_change']:

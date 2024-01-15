@@ -162,6 +162,9 @@ class Organisation(models.Model):
     def get_absolute_url(self):
         return reverse("organisation_detail", kwargs={"pk": self.pk})
 
+    def __str__(self):
+        return self.name
+
 
 class Business(models.Model):
     name = models.CharField(max_length=100)
@@ -170,6 +173,9 @@ class Business(models.Model):
     def get_absolute_url(self):
         return reverse("business_detail", kwargs={"pk": self.pk})
 
+    def __str__(self):
+        return self.name
+
 
 class Branch(models.Model):
     name = models.CharField(max_length=100)
@@ -177,3 +183,6 @@ class Branch(models.Model):
 
     def get_absolute_url(self):
         return reverse("branch_detail", kwargs={"pk": self.pk})
+
+    def __str__(self):
+        return self.name
