@@ -3,16 +3,8 @@ from django.dispatch import receiver
 from django.contrib.auth.models import Group
 from django.conf import settings
 from guardian.shortcuts import assign_perm
-from .models import *
+from .models import Entity
 
-@receiver(post_delete, sender=Organisation)
-def delete_organisation_groups(sender, instance, **kwargs):
-    instance.delete_groups()
-
-@receiver(post_delete, sender=Business)
-def delete_business_groups(sender, instance, **kwargs):
-    instance.delete_groups()
-
-@receiver(post_delete, sender=Branch)
-def delete_branch_groups(sender, instance, **kwargs):
+@receiver(post_delete, sender=Entity)
+def delete_entity_groups(sender, instance, **kwargs):
     instance.delete_groups()
