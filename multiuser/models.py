@@ -11,7 +11,6 @@ from functools import reduce
 import time
 
 
-
 class Invitation(models.Model):
     email = models.EmailField()
     entity = models.ForeignKey('Entity', on_delete=models.CASCADE) 
@@ -152,7 +151,7 @@ class Entity(models.Model):
             raise ValidationError('Parent must be of the correct type')
 
     def __str__(self):
-        return self.content_object.name
+        return self.id.__str__()
 
 
 class Organisation(models.Model):

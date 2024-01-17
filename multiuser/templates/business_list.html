@@ -2,9 +2,6 @@
 
 {% block content %}
     <h1>Business list</h1>
-    <p>
-        <a href="{% url 'business_create' %}">+ Create business</a>
-    </p>
     {% for business in businesses %}
         <div class="business">
             <h2><a href="{% url 'business_detail' business.id %}">{{ business.name }}</a></h2>

@@ -43,13 +43,19 @@ class InvitationCreateView(LoginRequiredMixin, CreateView):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         user = self.request.user
-        queryset = Entity.objects.none()
+        model = Entity.get_top_model()
+
+        # Get content type id from querystring
+        content_type_id = self.request.GET.get('content_type_id')
+
+        if content_type_id is not None:
+            # Get the model from the content type id
+            model = ContentType.objects.get(pk=content_type_id).model_class()
+            print(model)
 
         # Only allow the user to invite others to entities for which they have change permission
-        for model in Entity.get_all_models():
-            sub_queryset = model.get_objects_for_user(user, settings.ENTITY_PERM_CHANGE)
-            queryset = queryset | Entity.objects.filter(id__in=sub_queryset) # Upcast to allow union
-        form.fields['entity'].queryset = queryset
+        form.fields['entity'].queryset = Entity.get_objects_for_user(model, user, settings.ENTITY_PERM_CHANGE)
+        print(form.fields['entity'].queryset)
 
         return form
 
@@ -57,6 +63,11 @@ class InvitationCreateView(LoginRequiredMixin, CreateView):
         # Assign the user who created the instance to the invited_by field
         form.instance.invited_by = self.request.user 
         return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['content_types'] = [ContentType.objects.get_for_model(model) for model in Entity.get_all_models()]
+        return context
 
 
 class InvitationAcceptView(LoginRequiredMixin, View):
@@ -107,16 +118,19 @@ class EntityDetailView(EntityMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        content_type = ContentType.objects.get_for_model(self.object)
         entities_user_can_change = Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_CHANGE)
         entities_user_can_delete = Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_DELETE)
 
         # Whether the user has relevant permissions for the current or ancestor models
         context['can_change'] = self.object in entities_user_can_change
         context['can_delete'] = self.object in entities_user_can_delete
+
+        # The model's entity id
+        context['entity_id'] = Entity.objects.get(content_type=content_type, object_id=self.object.id).id
         
-        # Add children to the context if the model is not a bottom level entity
+        # The model's children
         if not Entity.is_bottom(self.model): 
-            content_type = ContentType.objects.get_for_model(self.object)
             context['children'] = Entity.objects.filter(parent__content_type=content_type, parent__object_id=self.object.id)
 
         # Current user can manage users if they have change permission 
