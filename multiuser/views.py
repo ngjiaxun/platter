@@ -55,7 +55,7 @@ class InvitationCreateView(LoginRequiredMixin, CreateView):
             print(model)
 
         # Only allow the user to invite others to entities for which they have change permission
-        form.fields['entity'].queryset = Entity.get_objects_for_user(model, user, settings.ENTITY_PERM_CHANGE)
+        form.fields['entity'].queryset = Entity.get_content_objects(model, user, settings.ENTITY_PERM_CHANGE)
         print(form.fields['entity'].queryset)
 
         return form
@@ -98,7 +98,7 @@ class EntityMixin(LoginRequiredMixin):
 
 class EntityListView(EntityMixin, ListView):
     def get_queryset(self):
-        return Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_VIEW)
+        return Entity.get_content_objects(self.model, self.request.user, settings.ENTITY_PERM_VIEW)
 
 
 class EntityCreateView(EntityMixin, CreateView):
@@ -115,13 +115,13 @@ class EntityCreateView(EntityMixin, CreateView):
 
 class EntityDetailView(EntityMixin, DetailView):
     def get_queryset(self):
-        return Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_VIEW)
+        return Entity.get_content_objects(self.model, self.request.user, settings.ENTITY_PERM_VIEW)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         content_type = ContentType.objects.get_for_model(self.object)
-        entities_user_can_change = Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_CHANGE)
-        entities_user_can_delete = Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_DELETE)
+        entities_user_can_change = Entity.get_content_objects(self.model, self.request.user, settings.ENTITY_PERM_CHANGE)
+        entities_user_can_delete = Entity.get_content_objects(self.model, self.request.user, settings.ENTITY_PERM_DELETE)
 
         # Whether the user has relevant permissions for the current or ancestor models
         context['can_change'] = self.object in entities_user_can_change
@@ -160,12 +160,12 @@ class EntityDetailView(EntityMixin, DetailView):
 
 class EntityUpdateView(EntityMixin, UpdateView):
     def get_queryset(self):
-        return Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_CHANGE)
+        return Entity.get_content_objects(self.model, self.request.user, settings.ENTITY_PERM_CHANGE)
 
 
 class EntityDeleteView(EntityMixin, DeleteView):
     def get_queryset(self):
-        return Entity.get_objects_for_user(self.model, self.request.user, settings.ENTITY_PERM_DELETE)
+        return Entity.get_content_objects(self.model, self.request.user, settings.ENTITY_PERM_DELETE)
 
 
 class OrganisationListView(EntityListView):

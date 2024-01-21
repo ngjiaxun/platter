@@ -1,14 +1,5 @@
 from django.db import models
-from django.db.models import Q
-from django.apps import apps
 from django.urls import reverse
-from django.conf import settings
-from django.contrib.auth.models import User, Group
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
-from guardian.shortcuts import get_objects_for_user, assign_perm
-from functools import reduce
-import time
 
 
 class Organisation(models.Model):
