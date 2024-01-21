@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'guardian',
     'multiuser',
+    'entities',
 ]
 
 MIDDLEWARE = [
@@ -157,6 +158,8 @@ ENTITY_ROLES = {
         'group_name': 'users',
     },
 }
+
+ENTITY_MODELS_APP = 'multiuser'
 
 ENTITY_HIERARCHY = [
     "Organisation",

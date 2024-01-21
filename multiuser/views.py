@@ -6,7 +6,8 @@ from django.views.generic import ListView, CreateView, DetailView, UpdateView, D
 from django.urls import reverse_lazy, reverse
 from django.db.models import Prefetch, F
 from django.conf import settings
-from .models import Invitation, Entity, Organisation, Business, Branch
+from .models import Organisation, Business, Branch
+from entities.models import Entity, Invitation
 from guardian.shortcuts import get_objects_for_user, get_groups_with_perms, get_users_with_perms
 
 

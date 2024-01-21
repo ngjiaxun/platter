@@ -1,10 +1,6 @@
 from django.contrib import admin
-from .models import *
+from .models import Organisation, Business, Branch
 from guardian.admin import GuardedModelAdmin
-
-@admin.register(Entity)
-class EntityAdmin(GuardedModelAdmin):
-    pass
 
 @admin.register(Organisation)
 class OrganisationAdmin(GuardedModelAdmin):
